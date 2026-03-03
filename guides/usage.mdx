@@ -27,7 +27,7 @@ Noeqtion supports two types of LaTeX equations:
 
 Inline equations are wrapped in single dollar signs and appear within text:
 
-```latex
+```text
 The quadratic formula is $x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$ for any quadratic equation.
 ```
 
@@ -101,8 +101,8 @@ $$
 
 During conversion, Noeqtion temporarily hides UI elements to reduce visual distraction:
 
-```javascript
-// Math dialog and text action menu are hidden during conversion
+```css
+/* Math dialog and text action menu are hidden during conversion */
 div[role="dialog"] { opacity: 0 !important; transform: scale(0.001) !important; }
 .notion-text-action-menu { opacity: 0 !important; }
 ```

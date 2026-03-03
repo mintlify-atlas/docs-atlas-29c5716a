@@ -37,7 +37,7 @@ The inline equation regex (`$[^$\n]*?$`) **excludes newline characters**:
 
 This means multiline inline equations will NOT be detected:
 
-```latex
+```text
 This won't work: $x = 
 y + z$
 ```
@@ -57,7 +57,7 @@ This limitation is intentional to prevent false positives from mismatched single
 
 The regex uses **non-greedy matching** (`*?`), which can fail with nested delimiters:
 
-```latex
+```text
 Problematic: $Price: $50$ won't parse correctly
 ```
 

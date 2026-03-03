@@ -20,7 +20,7 @@ This guide helps you diagnose and resolve common issues when using Noeqtion to c
     **Diagnosis:**
     
     Open the browser console (F12) and look for:
-    ```
+    ```text
     Notion Math Converter content script loaded.
     ```
     
@@ -258,17 +258,17 @@ async function convertInlineEquation(latexContent) {
 ### Critical DOM Dependencies
 
 1. **Editable blocks** must have:
-   ```javascript
+   ```text
    data-content-editable-leaf="true"
    ```
 
 2. **Math dialog** is detected by:
-   ```javascript
+   ```css
    div[role="dialog"]
    ```
 
 3. **Error alerts** are detected by:
-   ```javascript
+   ```css
    div[role="alert"]
    ```
 
@@ -308,7 +308,7 @@ const api = typeof browser !== "undefined" ? browser : chrome;
   
   <Step title="Test Single Equations">
     Try converting a single simple equation first:
-    ```latex
+    ```text
     $x^2$
     ```
     
