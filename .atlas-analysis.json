@@ -1,0 +1,57 @@
+{
+  "projectType": "general",
+  "projectName": "Noeqtion",
+  "projectDescription": "A browser extension that converts LaTeX-style equations to Notion's native math blocks.",
+  "theme": "mint",
+  "primaryColor": "#007bff",
+  "lightColor": "#66b3ff",
+  "darkColor": "#0056b3",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/usage",
+          "guides/keyboard-shortcuts",
+          "guides/troubleshooting"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/technical-details",
+          "reference/limitations",
+          "reference/browser-compatibility"
+        ]
+      },
+      {
+        "group": "Community",
+        "pages": [
+          "contributing",
+          "faq"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automatic detection of inline ($...$) and block ($$...$$) LaTeX equations",
+    "One-click conversion with Ctrl+Alt+M keyboard shortcut",
+    "Browser extension popup for manual triggering",
+    "Sequential processing with DOM rescanning for dynamic content",
+    "Native integration with Notion's /math command"
+  ],
+  "publicApiSurface": [
+    "convertMathEquations() - Main conversion function triggered by keyboard shortcut or popup",
+    "Ctrl+Alt+M - Keyboard shortcut for converting all equations on the page",
+    "Browser extension popup with 'Convert' button",
+    "Content script message listener for 'convert' action"
+  ]
+}
