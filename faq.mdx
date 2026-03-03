@@ -1,0 +1,384 @@
+---
+title: 'Frequently Asked Questions'
+description: 'Common questions about using Noeqtion for LaTeX to Notion conversion'
+---
+
+Find answers to common questions about using Noeqtion to convert LaTeX equations in Notion.
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Noeqtion?">
+    Noeqtion is a browser extension that automatically converts LaTeX-style equations (like `$E=mc^2$` or `$$\int_0^\infty e^{-x^2}dx$$`) into Notion's native math blocks. 
+    
+    Instead of manually wrapping each equation with Notion's math formatting, you can paste your notes with LaTeX equations and convert them all at once with a single keyboard shortcut (`Ctrl+Alt+M`).
+  </Accordion>
+
+  <Accordion title="Which browsers are supported?">
+    Noeqtion is fully tested and working on:
+    
+    - **Firefox** - Install from [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter)
+    - **Chrome** - Load as unpacked extension from `chrome://extensions/`
+    - **Other Chromium-based browsers** - Should work, but not officially tested
+    
+    The extension uses Manifest V3 for maximum compatibility.
+  </Accordion>
+
+  <Accordion title="Is Noeqtion free?">
+    Yes, Noeqtion is completely free and open source. The code is available on [GitHub](https://github.com/voidCounter/noeqtion) and you can use, modify, or contribute to it however you like.
+  </Accordion>
+
+  <Accordion title="Does it work on mobile?">
+    No, Noeqtion is a browser extension that only works on desktop browsers. Mobile browsers don't support the extension APIs needed for this functionality.
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="How do I install Noeqtion on Firefox?">
+    <Steps>
+      <Step title="Visit Firefox Add-ons">
+        Go to the [Noeqtion add-on page](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter)
+      </Step>
+      <Step title="Add to Firefox">
+        Click "Add to Firefox" and confirm the installation
+      </Step>
+      <Step title="Start Using">
+        Open any Notion page and press `Ctrl+Alt+M` to convert equations
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="How do I install Noeqtion on Chrome?">
+    <Steps>
+      <Step title="Download the Source">
+        Clone or download the repository from [GitHub](https://github.com/voidCounter/noeqtion)
+      </Step>
+      <Step title="Enable Developer Mode">
+        Open `chrome://extensions/` and toggle "Developer mode" in the top right
+      </Step>
+      <Step title="Load Unpacked Extension">
+        Click "Load unpacked" and select the folder containing the extension files
+      </Step>
+      <Step title="Start Using">
+        Open any Notion page and press `Ctrl+Alt+M` to convert equations
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="What permissions does the extension need?">
+    Noeqtion requires minimal permissions as defined in `manifest.json`:
+    
+    - `activeTab` - To access the current Notion page
+    - `scripting` - To run the conversion script
+    - Host permission for `https://www.notion.so/*` - To work on Notion pages
+    
+    The extension doesn't access any other websites, collect data, or communicate with external servers.
+  </Accordion>
+</AccordionGroup>
+
+## Usage
+
+<AccordionGroup>
+  <Accordion title="How do I convert equations?">
+    There are two ways to trigger conversion:
+    
+    **Method 1: Keyboard Shortcut (Recommended)**
+    1. Paste your text with LaTeX equations into Notion
+    2. Press `Ctrl+Alt+M`
+    3. Watch as all equations are automatically converted
+    
+    **Method 2: Extension Popup**
+    1. Paste your text with LaTeX equations into Notion
+    2. Click the Noeqtion extension icon in your browser toolbar
+    3. Click the "Convert" button
+    
+    <Tip>
+      The keyboard shortcut is faster and works without breaking your workflow.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="What LaTeX syntax is supported?">
+    Noeqtion detects two equation formats:
+    
+    **Inline equations:** Use single dollar signs
+    ```
+    The time complexity is $O(n \log n)$ for this algorithm.
+    ```
+    
+    **Display (block) equations:** Use double dollar signs
+    ```
+    $$\int_0^\infty e^{-x^2}dx = \frac{\sqrt{\pi}}{2}$$
+    ```
+    
+    The actual LaTeX content can be any valid expression that Notion's math renderer (KaTeX) supports.
+  </Accordion>
+
+  <Accordion title="Can I convert multiple equations at once?">
+    Yes! The extension automatically finds and converts all equations on the current page. It processes them sequentially, one at a time, to ensure reliable conversion with Notion's dynamic content system.
+    
+    The conversion process:
+    1. Scans the page for LaTeX equations
+    2. Converts the first equation found
+    3. Waits for Notion to update the DOM
+    4. Rescans and repeats until no equations remain
+  </Accordion>
+
+  <Accordion title="How long does conversion take?">
+    Conversion speed depends on the number of equations:
+    
+    - **Single equation:** ~300-500ms
+    - **Multiple equations:** ~300-500ms per equation
+    
+    The extension uses optimized timing delays (`TIMING` configuration in `content.js`) to balance speed with reliability. Display equations take slightly longer than inline equations because they require opening Notion's math dialog.
+  </Accordion>
+
+  <Accordion title="Why does the extension hide dialogs during conversion?">
+    To reduce visual distraction, the extension temporarily hides Notion's math dialogs using injected CSS:
+    
+    ```css
+    div[role="dialog"] { opacity: 0 !important; }
+    ```
+    
+    This makes the conversion feel smoother and less jarring. The dialogs are restored after conversion completes.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The keyboard shortcut isn't working">
+    Try these solutions:
+    
+    1. **Check for conflicts:** Another extension or system shortcut might be using `Ctrl+Alt+M`
+    2. **Reload the extension:**
+       - Firefox: Go to `about:debugging` and click "Reload"
+       - Chrome: Go to `chrome://extensions` and click the reload icon
+    3. **Check the page:** Make sure you're on a Notion page (`https://www.notion.so/*`)
+    4. **Use the popup:** As a workaround, click the extension icon and use the "Convert" button
+    
+    <Note>
+      The keyboard shortcut listener is registered in `content.js` and only works on Notion pages.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Some equations aren't converting">
+    Common causes:
+    
+    1. **Invalid LaTeX syntax:** Check that your equation is valid. If Notion's KaTeX renderer shows an error, the extension will skip that equation.
+    2. **Missing dollar signs:** Equations must be wrapped in `$...$` or `$$...$$`
+    3. **Nested equations:** The regex pattern may not handle nested dollar signs correctly
+    4. **Already converted:** The extension only converts text, not existing math blocks
+    
+    Open the browser console (F12) and look for warning messages like:
+    ```
+    KaTeX error detected, closing dialog
+    Could not find editable parent
+    Selection failed or doesn't match equation text
+    ```
+  </Accordion>
+
+  <Accordion title="The extension stops after a few equations">
+    This usually happens when:
+    
+    1. **Invalid LaTeX encountered:** The extension detects a KaTeX error and skips that equation, which may break the sequential processing
+    2. **Timing issues:** Notion's DOM updates might be slower than expected. Try reloading the page and converting again.
+    3. **DOM structure changed:** Notion occasionally updates their page structure, which may affect the extension's ability to find editable elements
+    
+    If this persists, [open an issue](https://github.com/voidCounter/noeqtion/issues) with:
+    - The equations you're trying to convert
+    - Console errors (F12 > Console)
+    - Browser version
+  </Accordion>
+
+  <Accordion title="Display equations aren't rendering correctly">
+    For display equations (`$$...$$`), the extension:
+    
+    1. Deletes the selected text
+    2. Types `/math` to trigger Notion's command menu
+    3. Presses Enter to create a math block
+    4. Inserts the LaTeX content
+    5. Clicks "Done" to close the dialog
+    
+    If this fails:
+    - Ensure the `/math` command works manually in Notion
+    - Check that you have edit permissions on the page
+    - Look for console errors about "Could not find math block input"
+    
+    The timing is controlled by `TIMING.DIALOG` and `TIMING.MATH_BLOCK` in `content.js` (100ms each).
+  </Accordion>
+
+  <Accordion title="How do I view extension logs?">
+    To debug issues:
+    
+    <Steps>
+      <Step title="Open Developer Tools">
+        Press `F12` or right-click and select "Inspect"
+      </Step>
+      <Step title="Go to Console Tab">
+        Click the "Console" tab
+      </Step>
+      <Step title="Trigger Conversion">
+        Press `Ctrl+Alt+M` or use the extension popup
+      </Step>
+      <Step title="Review Logs">
+        Look for messages starting with "Notion Math Converter" and any warnings or errors
+      </Step>
+    </Steps>
+    
+    The extension logs helpful information about:
+    - Script loading
+    - Equations found and converted
+    - Errors or skipped equations
+    - KaTeX rendering errors
+  </Accordion>
+</AccordionGroup>
+
+## Technical Details
+
+<AccordionGroup>
+  <Accordion title="How does the extension work?">
+    Noeqtion automates what you'd do manually:
+    
+    1. **Finds equations:** Uses a regex pattern to find text matching `$...$` or `$$...$$`
+    2. **Selects text:** Creates a DOM range and selection for each equation
+    3. **Converts display equations:** Types `/math`, presses Enter, inserts LaTeX, clicks Done
+    4. **Converts inline equations:** Replaces `$content$` with `$$content$$` (Notion's inline format)
+    5. **Rescans:** Waits for Notion to update the DOM, then searches for remaining equations
+    
+    All the conversion logic is in `content.js` (269 lines).
+  </Accordion>
+
+  <Accordion title="Does it modify Notion's behavior?">
+    No. The extension doesn't inject custom UI, modify Notion's core code, or change how Notion works. It simply automates keyboard and mouse actions using standard Web APIs:
+    
+    - `document.execCommand('insertText')` - To type text
+    - `KeyboardEvent` - To simulate keypresses
+    - `element.click()` - To click buttons
+    - `window.getSelection()` - To select text
+    
+    Everything the extension does, you could do manually (just much slower).
+  </Accordion>
+
+  <Accordion title="Why process equations sequentially instead of in parallel?">
+    Notion's pages are highly dynamic - the DOM structure changes as you edit. When the extension converts an equation, Notion updates the page structure, which would invalidate references to other equations found in the initial scan.
+    
+    By processing one equation at a time and rescanning after each conversion, the extension ensures:
+    - Correct DOM references
+    - Reliable selection and conversion
+    - No race conditions or conflicting operations
+    
+    From `content.js:40-64`:
+    ```javascript
+    while (true) {
+      const equations = findEquations();
+      if (equations.length === 0) break;
+      
+      const node = equations[0];
+      await convertSingleEquation(node, equationText);
+      // Rescan happens on next iteration
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="What are the timing constants for?">
+    The extension uses carefully tuned delays to synchronize with Notion's UI updates:
+    
+    ```javascript
+    const TIMING = {
+      FOCUS: 50,          // Wait after focusing a block
+      QUICK: 20,          // UI update between operations
+      DIALOG: 100,        // Wait for dialog to appear
+      MATH_BLOCK: 100,    // Wait for math block to initialize
+      POST_CONVERT: 300,  // Wait for DOM update after conversion
+    };
+    ```
+    
+    These values balance speed with reliability. Too fast and operations fail; too slow and conversion feels sluggish. The current values were determined through testing.
+  </Accordion>
+
+  <Accordion title="Can I customize the keyboard shortcut?">
+    Not currently. The shortcut is hardcoded in `content.js:27-35`:
+    
+    ```javascript
+    document.addEventListener("keydown", (event) => {
+      if (event.ctrlKey && event.altKey && 
+          (event.key === "M" || event.key === "m")) {
+        event.preventDefault();
+        convertMathEquations();
+      }
+    });
+    ```
+    
+    Adding customizable shortcuts would require:
+    1. Storage API to save preferences
+    2. Options page for configuration
+    3. Dynamic shortcut registration
+    
+    This would be a great [contribution](/contributing)!
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Usage
+
+<AccordionGroup>
+  <Accordion title="Can I use it with other note-taking apps?">
+    Currently, no. The extension is specifically designed for Notion's DOM structure and math block system. It would require significant changes to work with other platforms.
+    
+    However, the core concept could be adapted for other editors that:
+    - Support LaTeX/KaTeX rendering
+    - Have a predictable DOM structure
+    - Allow programmatic text insertion
+    
+    If you're interested in porting this to another platform, check out the [contributing guide](/contributing).
+  </Accordion>
+
+  <Accordion title="What happens with invalid LaTeX?">
+    When the extension inserts LaTeX into a math block, Notion's KaTeX renderer validates it. If there's an error:
+    
+    1. Notion displays an error alert: `div[role="alert"]`
+    2. The extension detects this (see `content.js:138`)
+    3. The extension presses Escape to close the dialog
+    4. The invalid equation is left in place or partially converted
+    
+    ```javascript
+    const hasError = document.querySelector('div[role="alert"]') !== null;
+    if (hasError) {
+      console.warn("KaTeX error detected, closing dialog");
+      dispatchKeyEvent("Escape", { keyCode: 27 });
+    }
+    ```
+    
+    Check your LaTeX syntax if equations aren't converting.
+  </Accordion>
+
+  <Accordion title="Can I contribute to the project?">
+    Absolutely! Noeqtion is open source and welcomes contributions:
+    
+    - **Bug fixes:** Found an issue? Submit a fix!
+    - **Features:** Have an idea for improvement? Propose it!
+    - **Documentation:** Help make the docs clearer
+    - **Testing:** Report browser/platform compatibility
+    
+    See the [contributing guide](/contributing) for details on setting up the development environment and submitting pull requests.
+  </Accordion>
+</AccordionGroup>
+
+## Still Have Questions?
+
+If your question isn't answered here:
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/voidCounter/noeqtion/issues">
+    Open an issue for bugs, feature requests, or questions
+  </Card>
+  
+  <Card title="Source Code" icon="code" href="https://github.com/voidCounter/noeqtion">
+    Review the code to understand how it works
+  </Card>
+</CardGroup>
+
+<Note>
+  The extension logs detailed information to the browser console (F12 > Console). This is often the fastest way to diagnose issues.
+</Note>

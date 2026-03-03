@@ -1,0 +1,153 @@
+---
+title: "Welcome to Noeqtion"
+description: "Convert LaTeX equations to Notion's native math blocks with a single keyboard shortcut"
+---
+
+<img
+  className="block"
+  src="https://github.com/user-attachments/assets/f872b9ef-1ce1-4ce5-bc26-92bc96a0a116"
+  alt="Noeqtion Demo"
+/>
+
+## What is Noeqtion?
+
+Noeqtion is a browser extension that automatically converts LaTeX-style equations in Notion to native math blocks. If you've ever copied notes with mathematical equations into Notion, you know the pain — those beautiful `$E=mc^2$` expressions just sit there as plain text.
+
+**This extension fixes that with a single keyboard shortcut: `Ctrl+Alt+M`**
+
+## Why Noeqtion?
+
+Notion still hasn't implemented automatic equation rendering for pasted text. While Notion supports beautiful math rendering, converting pasted LaTeX requires manually:
+1. Selecting each equation
+2. Typing `/math` 
+3. Pasting the LaTeX
+4. Clicking "Done"
+
+For a page with dozens of equations, this is tedious and time-consuming. Noeqtion automates the entire process.
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Get started with Noeqtion in Firefox or Chrome
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Convert your first equations in under 30 seconds
+  </Card>
+  <Card title="Usage Guide" icon="book" href="/guides/usage">
+    Learn the conversion workflow in detail
+  </Card>
+  <Card title="Technical Details" icon="code" href="/reference/technical-details">
+    Understand how the extension works under the hood
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Automatic Detection" icon="radar">
+    Detects both inline (`$...$`) and block (`$$...$$`) LaTeX equations automatically
+  </Card>
+  <Card title="Keyboard Shortcut" icon="keyboard">
+    Convert all equations on the page instantly with `Ctrl+Alt+M`
+  </Card>
+  <Card title="Popup Control" icon="click">
+    Alternative manual trigger via browser extension popup button
+  </Card>
+  <Card title="Sequential Processing" icon="arrows-rotate">
+    Processes equations one-by-one with DOM rescanning for dynamic content
+  </Card>
+  <Card title="Native Integration" icon="link">
+    Uses Notion's built-in `/math` command — no custom UI injection
+  </Card>
+  <Card title="Visual Distraction Reduction" icon="eye-slash">
+    Temporarily hides math dialogs during batch conversion
+  </Card>
+</CardGroup>
+
+## How It Works
+
+The extension scans your Notion page for LaTeX equation patterns using a regex:
+
+```javascript
+// From content.js:3
+const EQUATION_REGEX = /(\$\$[\s\S]*?\$\$|\$[^\$\n]*?\$)/;
+```
+
+When you trigger the conversion:
+
+<Steps>
+  <Step title="Detection">
+    Scans the entire page using DOM TreeWalker to find all text nodes matching the equation pattern
+  </Step>
+  <Step title="Selection">
+    For each equation, focuses the editable parent block and selects the equation text
+  </Step>
+  <Step title="Conversion">
+    - **Display equations** (`$$...$$`): Deletes selection, types `/math`, presses Enter, inserts LaTeX, clicks Done
+    - **Inline equations** (`$...$`): Directly replaces with `$$...$$` format (Notion's inline math syntax)
+  </Step>
+  <Step title="Rescanning">
+    After each conversion, waits 300ms for Notion to update the DOM, then rescans for remaining equations
+  </Step>
+</Steps>
+
+<Info>
+The extension uses calibrated timing delays (`content.js:4-15`) to ensure Notion's UI has time to respond between operations.
+</Info>
+
+## What Gets Converted?
+
+<Accordion title="Inline Equations">
+**Pattern**: `$...$` (single dollar signs)
+
+**Examples**:
+- `$E=mc^2$` → Notion inline math block
+- `$O(n \log n)$` → Notion inline math block
+- `$\alpha + \beta = \gamma$` → Notion inline math block
+
+**Behavior**: Converted by replacing with `$$...$$` format, which Notion interprets as inline math.
+</Accordion>
+
+<Accordion title="Display Equations">
+**Pattern**: `$$...$$` (double dollar signs)
+
+**Examples**:
+- `$$\int_0^\infty e^{-x^2}dx$$` → Notion display math block
+- `$$\sum_{i=1}^n i = \frac{n(n+1)}{2}$$` → Notion display math block
+
+**Behavior**: Converted using Notion's `/math` command, which creates a dedicated math block.
+</Accordion>
+
+## Browser Support
+
+<CardGroup cols={3}>
+  <Card title="Firefox" icon="firefox-browser">
+    ✅ **Fully Supported**
+    
+    [Install from Add-ons Store](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter)
+  </Card>
+  <Card title="Chrome" icon="chrome">
+    ✅ **Fully Supported**
+    
+    Manual installation via Developer Mode
+  </Card>
+  <Card title="Chromium Browsers" icon="browser">
+    ⚠️ **Likely Compatible**
+    
+    Edge, Brave, Vivaldi, Opera, Arc (not tested)
+  </Card>
+</CardGroup>
+
+<Note>
+Safari and mobile browsers are not supported due to Manifest V3 requirements. See [Browser Compatibility](/reference/browser-compatibility) for details.
+</Note>
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Install Noeqtion" icon="download" href="/installation">
+    Choose your browser and follow the installation steps
+  </Card>
+  <Card title="Quick Tutorial" icon="play" href="/quickstart">
+    Try converting your first equations
+  </Card>
+</CardGroup>

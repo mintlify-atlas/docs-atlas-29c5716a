@@ -1,0 +1,344 @@
+---
+title: Known Limitations
+description: Edge cases, constraints, and scenarios where Noeqtion may not work as expected
+---
+
+## Conversion Limitations
+
+### Invalid LaTeX Syntax
+
+<Warning>
+Equations with invalid LaTeX syntax will be detected but conversion will fail silently.
+</Warning>
+
+When the extension attempts to convert display equations (`$$...$$`), Notion validates the LaTeX using KaTeX. If the syntax is invalid:
+
+1. Notion displays an error alert (`div[role="alert"]`)
+2. The extension detects the error (`content.js:138`)
+3. Dialog is closed with `Escape` key
+4. Equation remains unconverted in the document
+
+**Example failing cases**:
+- `$$\frac{1}$$` (incomplete fraction)
+- `$$\unknown{x}$$` (undefined command)
+- `$$x^{y$$` (unmatched braces)
+
+<Info>
+Inline equations (`$...$`) are NOT validated by the extension. Notion will accept them as-is, potentially rendering incorrectly if syntax is invalid.
+</Info>
+
+### Multiline Equations in Text
+
+The inline equation regex (`$[^$\n]*?$`) **excludes newline characters**:
+
+```javascript
+/\$[^\$\n]*?\$/  // [^\$\n] means "not $ and not \n"
+```
+
+This means multiline inline equations will NOT be detected:
+
+```latex
+This won't work: $x = 
+y + z$
+```
+
+**Workaround**: Use display equation syntax for multiline:
+```latex
+$$
+x = y + z
+$$
+```
+
+<Note>
+This limitation is intentional to prevent false positives from mismatched single dollar signs spanning multiple paragraphs.
+</Note>
+
+### Nested or Escaped Dollar Signs
+
+The regex uses **non-greedy matching** (`*?`), which can fail with nested delimiters:
+
+```latex
+Problematic: $Price: $50$ won't parse correctly
+```
+
+The regex will match `$Price: $` instead of the intended equation.
+
+**Recommendation**: Avoid mixing currency symbols with LaTeX delimiters. Use `\$` for literal dollar signs inside equations:
+
+```latex
+$Cost: \$50 \times n$
+```
+
+## Notion-Specific Limitations
+
+### Dynamic Content Timing
+
+The extension waits 300ms after each conversion (`TIMING.POST_CONVERT`) for Notion's DOM to update. However:
+
+<Warning>
+On very slow systems or during heavy Notion page loads, 300ms may be insufficient, potentially causing:
+- Missed equations (not yet in DOM)
+- Duplicate conversions (old nodes still present)
+- Selection failures (stale node references)
+</Warning>
+
+**Mitigation**: The sequential rescan approach (`content.js:47-52`) helps by re-querying the DOM each iteration, but extreme cases may still fail.
+
+### Notion UI Changes
+
+The extension relies on Notion's DOM structure and attributes:
+
+- `data-content-editable-leaf="true"` for finding editable blocks
+- `role="button"` with text "Done" for closing math dialogs
+- `role="dialog"` for detecting math input
+- `role="alert"` for KaTeX errors
+
+<Warning>
+If Notion changes these attributes or UI structure in a future update, the extension may break until updated.
+</Warning>
+
+The extension does NOT use Notion's official API (none exists for content manipulation), so it's inherently fragile to UI changes.
+
+### Table Cell Equations
+
+Equations inside Notion table cells may not convert reliably due to:
+- Different editable container structure
+- Table-specific event handling in Notion
+- Focus behavior differences
+
+<Info>
+This scenario has not been extensively tested. If you encounter issues with table equations, please report them with specific examples.
+</Info>
+
+### Database Property Formulas
+
+The extension only processes **page content text nodes**. It does NOT handle:
+- Database formula properties
+- Synced block content from other pages
+- Embedded page titles
+- Comments or discussions
+
+<Note>
+Database formulas use a different syntax than LaTeX and are not intended for conversion.
+</Note>
+
+## Performance Limitations
+
+### Large Page Processing Time
+
+Sequential processing with timing delays means:
+
+- **10 equations**: ~5-6 seconds
+- **50 equations**: ~25-30 seconds  
+- **100+ equations**: Can exceed 1 minute
+
+<Info>
+There is no progress indicator. The extension works silently, which can make long conversions feel unresponsive.
+</Info>
+
+**Why not parallel processing?**
+- Notion's DOM updates are asynchronous and unpredictable
+- Parallel conversions would cause race conditions
+- Focus management conflicts between simultaneous operations
+
+### Memory and CPU Usage
+
+The DOM TreeWalker (`content.js:189-204`) traverses **all text nodes** on each iteration:
+
+```javascript
+while ((node = walker.nextNode())) {
+  if (node.nodeValue && EQUATION_REGEX.test(node.nodeValue)) {
+    textNodes.push(node);
+  }
+}
+```
+
+For pages with 1000+ blocks, this can cause:
+- Temporary CPU spikes during each rescan
+- Memory allocation for text node arrays
+- Brief UI freezes in extreme cases
+
+<Note>
+For typical pages (< 200 blocks), performance impact is negligible.
+</Note>
+
+## Browser-Specific Limitations
+
+### Firefox vs Chrome API Differences
+
+While the extension uses a compatibility layer:
+
+```javascript
+const api = typeof browser !== 'undefined' ? browser : chrome;
+```
+
+There are subtle differences:
+
+- **Firefox**: `browser.*` uses Promises natively
+- **Chrome**: `chrome.*` uses callbacks (wrapped by extension)
+
+Most functionality is identical, but message timing may vary slightly between browsers.
+
+### Browser Extension Restrictions
+
+Manifest V3 imposes restrictions:
+
+<Warning>
+The extension CANNOT:
+- Execute on `chrome://` or `about:` pages
+- Run before content scripts are injected (first page load delay)
+- Access cross-origin iframes (if Notion uses them)
+</Warning>
+
+### Mobile Browser Incompatibility
+
+<Warning>
+This extension does NOT work on mobile browsers (iOS Safari, Chrome Mobile, Firefox Mobile).
+</Warning>
+
+Reasons:
+- Mobile browsers don't support desktop-style extensions
+- Touch-based selection behaves differently
+- Keyboard shortcut (`Ctrl+Alt+M`) unavailable on mobile
+
+## Scope Limitations
+
+### Notion-Only Functionality
+
+The extension is hard-coded to work **exclusively on `notion.so`**:
+
+```json
+"host_permissions": ["https://www.notion.so/*"],
+"content_scripts": [
+  { "matches": ["https://www.notion.so/*"] }
+]
+```
+
+It will NOT work on:
+- Other note-taking apps (Obsidian, Evernote, etc.)
+- Google Docs
+- Microsoft Word Online  
+- Any non-Notion website
+
+### No Offline Support
+
+The extension requires:
+- Active internet connection (Notion is web-based)
+- Notion.so to be accessible
+- Active Notion session (logged in)
+
+<Info>
+There is no local processing or offline mode. Equations cannot be converted without access to Notion's web interface.
+</Info>
+
+### No Reverse Conversion
+
+The extension is **one-way only**:
+
+<Warning>
+You cannot convert Notion math blocks back to LaTeX text using this extension.
+</Warning>
+
+To extract LaTeX from Notion:
+1. Click the math block
+2. Manually copy the LaTeX from the editor
+3. Paste elsewhere
+
+There is no automated extraction or export functionality.
+
+## User Experience Limitations
+
+### No Undo Support
+
+Conversions are **irreversible** within the extension:
+
+- No built-in undo command
+- No conversion history
+- Notion's own undo (`Ctrl+Z`) may work but is unreliable for bulk operations
+
+<Info>
+Best practice: Test on a duplicate page before converting important documents.
+</Info>
+
+### No Selective Conversion
+
+The extension converts **all equations** on the page when triggered:
+
+- No way to select specific equations
+- No whitelist/blacklist for certain patterns
+- No interactive mode to approve each conversion
+
+**Workaround**: Temporarily remove equations you don't want converted before running the extension.
+
+### Visual Flicker Despite Mitigation
+
+Although the extension hides dialogs with CSS (`content.js:42-45`), users may still see:
+
+- Brief text selection highlights
+- Cursor jumping between equations
+- Slight layout shifts as blocks are created
+
+<Note>
+The injected CSS reduces flicker but cannot eliminate it entirely due to Notion's rendering behavior.
+</Note>
+
+### No Progress Feedback
+
+During conversion:
+
+- No progress bar
+- No count of equations processed
+- No completion notification
+- Only console logs (hidden from typical users)
+
+<Info>
+The only indication of completion is when cursor movement stops and equations have rendered as math blocks.
+</Info>
+
+## Security and Privacy Limitations
+
+### Content Script Permissions
+
+The extension has broad permissions on Notion pages:
+
+```json
+"permissions": ["activeTab", "scripting"]
+```
+
+This means it CAN (though doesn't):
+- Read all page content
+- Modify any text or blocks  
+- Intercept user input
+
+<Warning>
+Always review extension code before installing, especially for content-heavy sites like Notion.
+</Warning>
+
+The open-source nature of this extension allows verification that it only processes equations.
+
+### No Data Encryption
+
+Equations are processed in plaintext:
+
+- No encryption during conversion
+- Relies entirely on Notion's security model
+- Extension doesn't send data externally (no network requests)
+
+<Info>
+Since the extension runs entirely locally in the browser and makes no external API calls, your equation content never leaves Notion's infrastructure.
+</Info>
+
+## Reporting Issues
+
+If you encounter edge cases or scenarios not covered here:
+
+1. Check browser console (`F12`) for error messages
+2. Note the specific equation syntax that failed
+3. Document the Notion block type (paragraph, toggle, callout, etc.)
+4. Report at [GitHub Issues](https://github.com/voidCounter/noeqtion/issues)
+
+Include:
+- Browser and version
+- Extension version
+- Minimal reproducible example
+- Console logs if available

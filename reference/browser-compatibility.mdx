@@ -1,0 +1,397 @@
+---
+title: Browser Compatibility
+description: Supported browsers, platform requirements, and extension installation across different environments
+---
+
+## Officially Supported Browsers
+
+### Firefox
+
+<Info>
+**Status**: Fully tested and supported
+
+**Installation**: Available on [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter)
+</Info>
+
+Firefox support is first-class due to:
+- Native `browser.*` API support with Promises
+- Full Manifest V3 compatibility
+- Robust content script injection
+- Consistent DOM behavior with Notion
+
+**Minimum version**: Firefox 109+ (Manifest V3 requirement)
+
+### Google Chrome
+
+<Info>
+**Status**: Fully tested and supported
+
+**Installation**: Manual installation via Developer Mode (see [Installation Guide](/installation#chrome-installation))
+</Info>
+
+Chrome support uses the compatibility layer:
+
+```javascript
+const api = typeof browser !== 'undefined' ? browser : chrome;
+```
+
+This provides identical functionality to Firefox despite different API namespaces.
+
+**Minimum version**: Chrome 88+ (Manifest V3 requirement)
+
+## Likely Compatible Browsers
+
+### Chromium-Based Browsers
+
+<Note>
+The following browsers use Chrome's extension system and should work, but have **not been officially tested**:
+</Note>
+
+- **Microsoft Edge** (Chromium-based, version 88+)
+- **Brave Browser** (version 1.20+)
+- **Vivaldi** (version 3.6+)
+- **Opera** (version 74+)
+- **Arc Browser** (latest versions)
+
+**Installation**: Same process as Chrome (load unpacked extension in Developer Mode)
+
+**Expected compatibility**:
+- Manifest V3 support: ✅
+- `chrome.*` API: ✅  
+- Content script injection: ✅
+- Keyboard shortcuts: ✅
+
+<Warning>
+If you encounter issues on these browsers, please report them. Support can potentially be added if there's demand.
+</Warning>
+
+## Incompatible Browsers
+
+### Safari
+
+<Warning>
+**Status**: Not supported
+</Warning>
+
+Safari requires:
+- Safari Web Extension format (different from Chrome/Firefox)
+- Xcode project conversion
+- App Store distribution for full features
+- Different API namespace (`browser.*` with Safari-specific behaviors)
+
+**Technical blockers**:
+- No Manifest V3 equivalent in current Safari extension model
+- Different keyboard event handling
+- Content script injection timing differences
+
+<Info>
+Supporting Safari would require a separate build and maintenance overhead. Not currently planned.
+</Info>
+
+### Mobile Browsers
+
+<Warning>
+**Status**: Not supported (any mobile browser)
+</Warning>
+
+Browser extensions do not work on:
+- **iOS Safari** - No extension support
+- **Chrome Mobile (Android)** - Limited extension support, incompatible with content scripts
+- **Firefox Mobile (Android)** - Some extension support, but keyboard shortcut (`Ctrl+Alt+M`) unavailable
+- **Samsung Internet** - No extension ecosystem
+
+Notion mobile apps and mobile web browsers have fundamentally different DOM structures and input methods.
+
+### Legacy Browsers
+
+<Warning>
+Not supported:
+</Warning>
+
+- **Internet Explorer** (all versions) - No extension support, deprecated
+- **Old Edge (EdgeHTML)** - Pre-Chromium, deprecated
+- **Firefox < 109** - No Manifest V3 support
+- **Chrome < 88** - No Manifest V3 support
+
+## Manifest Version Requirements
+
+### Manifest V3
+
+Noeqtion uses **Manifest V3** (the latest extension platform):
+
+```json
+{
+  "manifest_version": 3,
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://www.notion.so/*"]
+}
+```
+
+**Why Manifest V3?**
+- Modern security model (service workers instead of background pages)
+- Future-proof against deprecation
+- Required for new Chrome Web Store submissions
+- Better performance and resource management
+
+<Note>
+Manifest V3 is only supported in:
+- Chrome 88+ (January 2021)
+- Firefox 109+ (January 2023)
+- Edge 88+ (January 2021)
+</Note>
+
+### Migration from Manifest V2
+
+There is no Manifest V2 version of this extension. If your browser doesn't support Manifest V3, you cannot use Noeqtion.
+
+**Check your browser version**:
+- Chrome: `chrome://version`
+- Firefox: `about:support`
+- Edge: `edge://version`
+
+## Platform Compatibility
+
+### Operating Systems
+
+<Info>
+The extension works on any OS that supports a compatible browser:
+</Info>
+
+- **Windows** (7, 8, 10, 11) - ✅
+- **macOS** (10.13+) - ✅  
+- **Linux** (all distributions) - ✅
+- **ChromeOS** - ✅ (via Chrome browser)
+
+**Keyboard shortcut note**:
+- Windows/Linux: `Ctrl+Alt+M`
+- macOS: `Ctrl+Alt+M` (NOT `Cmd`, uses `Ctrl` key)
+
+<Note>
+The shortcut is hardcoded in `content.js:28-35` and cannot be customized via browser extension settings.
+</Note>
+
+## Required Permissions
+
+From `manifest.json`:
+
+```json
+{
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://www.notion.so/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.notion.so/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
+```
+
+### Permission Breakdown
+
+<Accordion title="activeTab">
+**Purpose**: Allows popup to send messages to the currently active tab
+
+**Browser support**:
+- Chrome: ✅
+- Firefox: ✅  
+- Edge: ✅
+
+**User prompt**: No (standard permission)
+</Accordion>
+
+<Accordion title="scripting">
+**Purpose**: Required for Manifest V3 content script injection
+
+**Browser support**:
+- Chrome 88+: ✅
+- Firefox 109+: ✅
+- Edge 88+: ✅
+
+**User prompt**: No (standard permission)
+</Accordion>
+
+<Accordion title="host_permissions: notion.so">
+**Purpose**: Restricts extension to only work on `https://www.notion.so/*`
+
+**Scope**:
+- ✅ `https://www.notion.so/page-id`
+- ✅ `https://www.notion.so/workspace/page`  
+- ❌ `http://notion.so` (no HTTPS)
+- ❌ `https://notion.com` (different domain)
+- ❌ Any other website
+
+**User prompt**: Yes, on installation (Firefox shows "Access your data for notion.so")
+</Accordion>
+
+## Installation Methods
+
+### Firefox Add-ons Store
+
+**Official distribution**: [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter)
+
+**Installation**:
+1. Visit the add-on page
+2. Click "Add to Firefox"
+3. Approve permissions
+4. Extension automatically updates
+
+**Advantages**:
+- Automatic updates
+- Verified by Mozilla
+- One-click installation
+- No Developer Mode required
+
+### Chrome Developer Mode
+
+**Manual installation** (required for Chrome/Chromium browsers):
+
+1. Download/clone the extension source
+2. Open `chrome://extensions/`
+3. Enable "Developer mode" (top-right toggle)
+4. Click "Load unpacked"
+5. Select the extension folder
+
+<Warning>
+**Developer Mode limitations**:
+- No automatic updates (manual refresh required)
+- Extension may be disabled on browser restart
+- Warning banner on `chrome://extensions` page
+- Not verified by Chrome Web Store
+</Warning>
+
+**Why not in Chrome Web Store?**
+
+The extension is not currently published to the Chrome Web Store. This would require:
+- $5 one-time developer registration fee
+- Chrome Web Store review process
+- Ongoing maintenance for store requirements
+
+For now, manual installation is the only option for Chrome users.
+
+### Building from Source
+
+The extension requires **no build process**:
+
+```bash
+git clone https://github.com/voidCounter/noeqtion.git
+cd noeqtion
+# No npm install, no compilation needed
+# Load the folder directly in browser
+```
+
+**Files**:
+- `manifest.json` - Extension configuration
+- `content.js` - Main conversion logic  
+- `popup.html`, `popup.js`, `popup.css` - Extension popup UI
+
+<Info>
+The extension uses vanilla JavaScript with no dependencies or build tools. The source code can be loaded directly.
+</Info>
+
+## Feature Compatibility Matrix
+
+| Feature | Chrome | Firefox | Edge | Brave | Safari |
+|---------|--------|---------|------|-------|--------|
+| Keyboard shortcut (`Ctrl+Alt+M`) | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Extension popup | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Inline equation conversion | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Display equation conversion | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Content script injection | ✅ | ✅ | ✅ | ✅ | ❌ |
+| DOM TreeWalker | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `document.execCommand` | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Synthetic keyboard events | ✅ | ✅ | ✅ | ✅ | ❌ |
+
+<Note>
+Brave and Edge compatibility is inferred based on Chromium compatibility. Not officially tested.
+</Note>
+
+## Testing Your Browser
+
+### Quick Compatibility Check
+
+To verify your browser supports the extension:
+
+1. **Check Manifest V3 support**:
+   - Chrome: Version 88+ (`chrome://version`)
+   - Firefox: Version 109+ (`about:support`)
+
+2. **Verify Notion access**:
+   - Open `https://www.notion.so`
+   - Ensure you can log in and edit pages
+
+3. **Test extension load**:
+   - Install extension via appropriate method
+   - Check for errors in `chrome://extensions` or `about:debugging`
+
+4. **Verify permissions**:
+   - Extension should request access to `notion.so`
+   - No other permission requests
+
+### Common Installation Issues
+
+<Accordion title="Extension won't load in Chrome">
+**Symptoms**: "Manifest file is missing or unreadable" error
+
+**Solution**:
+- Ensure you're loading the folder containing `manifest.json`, not a subfolder
+- Check file permissions (must be readable)
+- Verify `manifest.json` syntax is valid (use JSON validator)
+</Accordion>
+
+<Accordion title="Keyboard shortcut doesn't work">
+**Possible causes**:
+- Browser shortcut conflict (check `chrome://extensions/shortcuts`)
+- Not focused on Notion page
+- Extension not loaded/enabled
+- macOS: Ensure using `Ctrl`, not `Cmd`
+
+**Solution**:
+- Use extension popup as alternative
+- Check browser console for errors (`F12`)
+</Accordion>
+
+<Accordion title="Extension disabled on browser restart (Chrome)">
+**Cause**: Developer Mode extensions require re-enabling after browser updates
+
+**Solution**:
+- Re-enable in `chrome://extensions`
+- OR: Publish to Chrome Web Store for permanent installation
+</Accordion>
+
+## Future Browser Support
+
+### Planned
+
+None currently. The extension targets Firefox and Chrome as the primary platforms.
+
+### Requested
+
+If there's significant demand for:
+- **Safari support** - Would require complete rewrite
+- **Chrome Web Store publication** - Feasible but requires registration
+- **Edge Add-ons Store** - Similar process to Chrome
+
+Please open a GitHub issue to express interest.
+
+### Not Planned
+
+- Mobile browser support (technical limitations)
+- Internet Explorer / Legacy Edge (deprecated browsers)
+- Browsers without Manifest V3 (security and future-proofing)
+
+## Reporting Compatibility Issues
+
+If you encounter browser-specific issues:
+
+1. **Verify browser version**: Ensure it meets minimum requirements
+2. **Check console errors**: Open DevTools (`F12`) and check Console tab
+3. **Test in other browser**: Confirm it's browser-specific
+4. **Report with details**:
+   - Browser name and version
+   - Operating system
+   - Extension version
+   - Steps to reproduce
+   - Console error messages
+
+**GitHub Issues**: [voidCounter/noeqtion](https://github.com/voidCounter/noeqtion/issues)

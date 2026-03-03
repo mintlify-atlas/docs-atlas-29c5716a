@@ -1,0 +1,296 @@
+---
+title: Technical Details
+description: Deep dive into Noeqtion's implementation architecture and conversion mechanisms
+---
+
+## Architecture Overview
+
+Noeqtion is built as a Manifest V3 browser extension with a minimal architecture:
+
+- **Content Script** (`content.js`): Handles equation detection and conversion logic
+- **Popup Interface** (`popup.html`, `popup.js`): Provides manual trigger UI
+- **Manifest Configuration** (`manifest.json`): Defines permissions and script injection
+
+<Info>
+The extension uses Manifest V3, the latest Chrome extension platform standard that emphasizes security, privacy, and performance.
+</Info>
+
+## Conversion Architecture
+
+### Sequential Processing Model
+
+Noeqtion uses a **sequential, single-equation** processing model:
+
+```javascript
+while (true) {
+  const equations = findEquations();
+  if (equations.length === 0) break;
+  
+  const node = equations[0];
+  await convertSingleEquation(node, equationText);
+}
+```
+
+This approach has several advantages:
+- **DOM stability**: Notion dynamically updates the DOM after each conversion
+- **Error isolation**: Failures in one equation don't block others
+- **Rescan capability**: Fresh DOM scan after each conversion handles dynamically inserted content
+
+### Equation Detection
+
+The extension uses a regex pattern to identify LaTeX equations:
+
+```javascript
+const EQUATION_REGEX = /(\$\$[\s\S]*?\$\$|\$[^\$\n]*?\$)/;
+```
+
+<Accordion title="Pattern Breakdown">
+- `\$\$[\s\S]*?\$\$`: Matches block equations (non-greedy, including newlines)
+- `\$[^\$\n]*?\$`: Matches inline equations (excluding newlines to prevent false positives)
+</Accordion>
+
+Detection happens via DOM TreeWalker:
+
+```javascript
+const walker = document.createTreeWalker(
+  document.body,
+  NodeFilter.SHOW_TEXT,
+  null,
+  false
+);
+```
+
+This traverses **all text nodes** in the document, making it highly compatible with Notion's complex nested structure.
+
+## Conversion Mechanisms
+
+### Display Equations (`$$...$$`)
+
+Display equations use Notion's `/math` command:
+
+1. **Selection**: Text node containing `$$...$$` is selected using `Range` API
+2. **Deletion**: `selection.deleteFromDocument()` removes the LaTeX text
+3. **Command insertion**: `document.execCommand('insertText', false, '/math')` triggers Notion's command palette
+4. **Enter dispatch**: Synthetic `Enter` keypress event selects the math block option
+5. **LaTeX insertion**: Content (without `$$` delimiters) inserted into the math input field
+6. **Validation**: KaTeX error detection via `div[role="alert"]` selector
+7. **Finalization**: "Done" button clicked or `Escape` pressed if error detected
+
+<Note>
+The extension waits 100ms for the math dialog to appear and another 100ms for the math block to initialize. These timing constants are critical for reliability.
+</Note>
+
+### Inline Equations (`$...$`)
+
+Inline equations use a simpler conversion:
+
+1. **Selection**: Text node containing `$...$` is selected
+2. **Direct replacement**: `document.execCommand('insertText', false, `$$${latexContent}$$`)` 
+3. **Notion auto-detection**: Notion recognizes the `$$...$$` pattern and automatically converts to inline math
+
+<Warning>
+Note the difference: Single dollar signs (`$...$`) are detected, but converted to double dollar signs (`$$...$$`) because Notion only recognizes the latter for inline math blocks.
+</Warning>
+
+## Timing System
+
+The extension uses carefully calibrated delays defined in `content.js:4-15`:
+
+| Timing Constant | Duration | Purpose |
+|-----------------|----------|----------|
+| `FOCUS` | 50ms | Wait after focusing editable block for Notion to register |
+| `QUICK` | 20ms | Short pause for UI updates between operations |
+| `DIALOG` | 100ms | Wait for dialogs/inputs to appear (display equations) |
+| `MATH_BLOCK` | 100ms | Extra time for math block initialization |
+| `POST_CONVERT` | 300ms | Wait for Notion DOM updates before rescanning |
+
+<Info>
+These timing values were empirically determined to balance speed and reliability across different system performance levels.
+</Info>
+
+## DOM Interaction Details
+
+### Finding Editable Parents
+
+Notion's editable content uses the attribute `data-content-editable-leaf="true"`:
+
+```javascript
+function findEditableParent(node) {
+  let parent = node.parentElement;
+  while (parent && 
+         parent.getAttribute('data-content-editable-leaf') !== 'true') {
+    parent = parent.parentElement;
+  }
+  return parent;
+}
+```
+
+This traverses up the DOM tree until finding Notion's editable container.
+
+### Text Selection
+
+Precise text selection uses the DOM Range API:
+
+```javascript
+const range = document.createRange();
+range.setStart(node, startIndex);
+range.setEnd(node, startIndex + length);
+
+const selection = window.getSelection();
+selection.removeAllRanges();
+selection.addRange(range);
+```
+
+This allows surgical replacement of equation text while preserving surrounding content.
+
+### Keyboard Event Simulation
+
+Synthetic keyboard events are dispatched to trigger Notion's native behavior:
+
+```javascript
+activeElement.dispatchEvent(
+  new KeyboardEvent('keydown', {
+    key: key,
+    code: `Key${key.toUpperCase()}`,
+    keyCode: keyCode,
+    bubbles: true,
+    cancelable: true
+  })
+);
+```
+
+Used for `Enter` (selecting math block) and `Escape` (closing dialogs).
+
+## Visual Distraction Mitigation
+
+During conversion, the extension injects CSS to hide UI elements:
+
+```css
+div[role="dialog"] { 
+  opacity: 0 !important; 
+  transform: scale(0.001) !important; 
+}
+.notion-text-action-menu { 
+  opacity: 0 !important; 
+  transform: scale(0.001) !important; 
+  pointer-events: none !important; 
+}
+```
+
+This prevents the math dialog and text action menu from flickering during batch conversions. The style is removed after all equations are processed (`content.js:66-70`).
+
+## Browser API Compatibility Layer
+
+The extension supports both Firefox and Chrome APIs:
+
+```javascript
+const api = typeof browser !== 'undefined' ? browser : chrome;
+```
+
+- **Firefox**: Uses `browser.*` namespace (Promise-based)
+- **Chrome/Chromium**: Uses `chrome.*` namespace (callback-based)
+
+The messaging system works identically across both platforms via this abstraction.
+
+## Activation Methods
+
+### Keyboard Shortcut
+
+Registered via `keydown` event listener (`content.js:27-36`):
+
+```javascript
+if (event.ctrlKey && event.altKey && 
+    (event.key === 'M' || event.key === 'm')) {
+  event.preventDefault();
+  convertMathEquations();
+}
+```
+
+**Shortcut**: `Ctrl+Alt+M` (case-insensitive)
+
+### Extension Popup
+
+The popup sends a message to the active tab:
+
+```javascript
+api.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  api.tabs.sendMessage(tabs[0].id, { action: 'convert' });
+});
+```
+
+The content script listens for this message:
+
+```javascript
+api.runtime.onMessage.addListener((message) => {
+  if (message.action === 'convert') {
+    convertMathEquations();
+  }
+});
+```
+
+## Error Handling
+
+### KaTeX Validation
+
+For display equations, the extension checks for KaTeX errors:
+
+```javascript
+const hasError = document.querySelector('div[role="alert"]') !== null;
+
+if (hasError) {
+  console.warn('KaTeX error detected, closing dialog');
+  dispatchKeyEvent('Escape', { keyCode: 27 });
+}
+```
+
+If LaTeX syntax is invalid, Notion shows an alert. The extension detects this and closes the dialog, leaving the equation unconverted.
+
+### Conversion Failures
+
+Each conversion is wrapped in try-catch:
+
+```javascript
+try {
+  // ... conversion logic
+} catch (err) {
+  console.error('Equation conversion failed:', err);
+}
+```
+
+Failures log to console but don't interrupt the batch process. The loop continues to the next equation.
+
+## Permissions and Scope
+
+From `manifest.json`:
+
+```json
+{
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://www.notion.so/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.notion.so/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
+```
+
+<Accordion title="Permission Details">
+- **activeTab**: Allows popup to send messages to the current tab
+- **scripting**: Required for Manifest V3 script injection
+- **host_permissions**: Restricts extension to `notion.so` domain only
+- **content_scripts**: Auto-injects `content.js` on all Notion pages
+</Accordion>
+
+## Performance Characteristics
+
+Conversion speed depends on:
+- **Equation count**: Sequential processing means O(n) time complexity
+- **Timing delays**: ~520ms per display equation, ~320ms per inline equation
+- **DOM complexity**: TreeWalker traversal scales with page size
+- **Notion responsiveness**: Delays ensure Notion's async updates complete
+
+<Note>
+For a page with 10 display equations, expect ~5-6 seconds total conversion time. This is intentionally conservative to ensure reliability.
+</Note>

@@ -1,80 +1,253 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Convert your first LaTeX equations to Notion math blocks in under 60 seconds"
 ---
 
-## Get started in three steps
-
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This quickstart guide will get you converting LaTeX equations in Notion immediately. You'll learn both conversion methods and see the extension in action.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+**Prerequisites**: You must have Noeqtion installed. If you haven't installed it yet, see the [Installation Guide](/installation).
 </Note>
+
+## Try It Now: 3-Step Tutorial
+
+<Steps>
+  <Step title="Create a Test Page">
+    Open Notion and create a new page (or use an existing one)
+    
+    Paste this sample text containing LaTeX equations:
+    
+    ```
+    Time complexity is $O(n \log n)$ for this algorithm.
+    
+    The famous equation $$E=mc^2$$ relates energy and mass.
+    
+    Integration example: $$\int_0^\infty e^{-x^2}dx = \frac{\sqrt{\pi}}{2}$$
+    
+    Inline summation: $\sum_{i=1}^n i = \frac{n(n+1)}{2}$
+    ```
+    
+    <Info>
+    At this point, Notion shows these as plain text — they're not rendered as math.
+    </Info>
+  </Step>
+  
+  <Step title="Convert with Keyboard Shortcut">
+    Press `Ctrl+Alt+M` (Windows/Linux) or `Cmd+Option+M` (macOS)
+    
+    **What you'll see**:
+    - The extension scans the page for equations
+    - Each equation is selected and converted sequentially
+    - Math dialogs appear briefly (the extension hides them to reduce distraction)
+    - After a few seconds, all equations are converted
+    
+    <Check>
+    If successful, all equations are now rendered as Notion's native math blocks! The inline equations (`$...$`) appear inline, and the display equations (`$$...$$`) appear as centered blocks.
+    </Check>
+  </Step>
+  
+  <Step title="Try the Alternative Method">
+    Create another test block with an equation:
+    
+    ```
+    Test equation: $\alpha + \beta = \gamma$
+    ```
+    
+    Instead of the keyboard shortcut, **click the Noeqtion icon** in your browser toolbar
+    
+    Click the **"Convert"** button in the popup
+    
+    The equation converts just like before!
+  </Step>
+</Steps>
+
+<Tip>
+The keyboard shortcut (`Ctrl+Alt+M`) is faster for regular use. The popup is useful if you forget the shortcut or if the shortcut conflicts with another application.
+</Tip>
+
+## What Just Happened?
+
+When you pressed `Ctrl+Alt+M`, the extension:
+
+1. **Scanned the page** using a regex pattern to find all `$...$` and `$$...$$` equations
+2. **Processed each equation sequentially**:
+   - For display equations (`$$...$$`): Deleted the text, typed `/math`, pressed Enter, inserted the LaTeX, clicked "Done"
+   - For inline equations (`$...$`): Replaced the text with `$$...$$` format (Notion's inline math syntax)
+3. **Rescanned the DOM** after each conversion to find newly-exposed equations (Notion updates the DOM dynamically)
+4. **Repeated** until no more equations were found
+
+<Info>
+The entire process typically takes 1-3 seconds for a page with 10-20 equations, depending on your system and Notion's responsiveness.
+</Info>
+
+## Understanding the Two Equation Types
+
+Noeqtion handles two types of LaTeX equations differently:
+
+<Tabs>
+  <Tab title="Inline Equations">
+    **Syntax**: `$...$` (single dollar signs)
+    
+    **Examples**:
+    - `$E=mc^2$` — Simple inline equation
+    - `$O(n)$` — Big-O notation
+    - `$\alpha + \beta$` — Greek letters
+    
+    **Result**: Renders inline with surrounding text
+    
+    **How it works**: The extension replaces `$...$` with `$$...$$`, which Notion interprets as inline math (`content.js:153-165`)
+  </Tab>
+  
+  <Tab title="Display Equations">
+    **Syntax**: `$$...$$` (double dollar signs)
+    
+    **Examples**:
+    - `$$\int_0^\infty e^{-x^2}dx$$` — Integral
+    - `$$\sum_{i=1}^n i = \frac{n(n+1)}{2}$$` — Summation
+    - `$$\frac{-b \pm \sqrt{b^2-4ac}}{2a}$$` — Quadratic formula
+    
+    **Result**: Renders as centered, standalone math block
+    
+    **How it works**: The extension uses Notion's `/math` command to create a dedicated math block (`content.js:117-151`)
+  </Tab>
+</Tabs>
+
+## Common First-Time Questions
+
+<AccordionGroup>
+  <Accordion title="What if the keyboard shortcut doesn't work?" icon="keyboard">
+    Try these solutions:
+    
+    1. **Check you're on a Notion page**: The extension only works on `https://www.notion.so/*` URLs
+    2. **Use the popup instead**: Click the extension icon and press "Convert"
+    3. **Check for conflicts**: Another application may be using `Ctrl+Alt+M`
+    4. **Reload the page**: Sometimes the content script doesn't inject on first load
+    
+    See [Troubleshooting](/guides/troubleshooting) for more solutions.
+  </Accordion>
+  
+  <Accordion title="Can I convert just one equation instead of all?" icon="filter">
+    Not currently — the extension converts **all** equations on the page when triggered
+    
+    **Workaround**: If you only want to convert specific equations:
+    1. Copy the equations to a separate page
+    2. Run the conversion there
+    3. Copy the converted math blocks back
+    
+    Selective conversion is a [planned feature](https://github.com/voidCounter/noeqtion/issues) for a future release.
+  </Accordion>
+  
+  <Accordion title="What happens to invalid LaTeX syntax?" icon="triangle-exclamation">
+    The extension attempts to create the math block, but:
+    
+    - **Display equations**: If KaTeX detects an error, the extension detects the error dialog (`content.js:138`) and presses Escape to cancel
+    - **Inline equations**: Notion shows an error indicator in the inline math block
+    
+    Invalid equations remain unconverted (as text) or show as errored math blocks.
+  </Accordion>
+  
+  <Accordion title="Can I undo the conversion?" icon="rotate-left">
+    Yes! Use Notion's standard undo:
+    
+    - **Keyboard**: `Ctrl+Z` (Windows/Linux) or `Cmd+Z` (macOS)
+    - **Menu**: Click the "⋯" menu and select "Undo"
+    
+    Each equation conversion is a separate action, so you can undo them one-by-one.
+  </Accordion>
+  
+  <Accordion title="Does it work in Notion tables or databases?" icon="table">
+    **Partially**:
+    
+    - ✅ **Works in**: Regular text blocks, callouts, quotes, toggles
+    - ⚠️ **May fail in**: Table cells, database properties, page titles
+    
+    Table cells have different DOM structure, which can cause timing issues with the conversion algorithm.
+    
+    See [Limitations](/reference/limitations) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Test Cases to Try
+
+Once you're comfortable with the basics, try these test cases to see edge cases:
+
+<CodeGroup>
+```latex Basic Examples
+$x^2 + y^2 = z^2$
+$$\frac{d}{dx} x^n = nx^{n-1}$$
+$\lim_{x \to \infty} \frac{1}{x} = 0$
+```
+
+```latex Complex Equations
+$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$
+$$\sum_{k=0}^{n} \binom{n}{k} = 2^n$$
+$$\prod_{i=1}^{n} i = n!$$
+```
+
+```latex Matrices (Display Only)
+$$\begin{bmatrix} a & b \\ c & d \end{bmatrix}$$
+$$\begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}$$
+```
+
+```latex Greek Letters & Symbols
+$\alpha, \beta, \gamma, \delta, \epsilon$
+$\sum, \prod, \int, \lim, \infty$
+$\forall, \exists, \in, \subset, \cup, \cap$
+```
+</CodeGroup>
+
+## Performance Expectations
+
+<CardGroup cols={2}>
+  <Card title="Small Pages" icon="gauge-simple-high">
+    **1-10 equations**
+    
+    Conversion time: 1-3 seconds
+  </Card>
+  <Card title="Medium Pages" icon="gauge">
+    **10-50 equations**
+    
+    Conversion time: 5-15 seconds
+  </Card>
+  <Card title="Large Pages" icon="gauge-simple-low">
+    **50+ equations**
+    
+    Conversion time: 15-60+ seconds
+    
+    <Info>Sequential processing limits speed on large pages</Info>
+  </Card>
+  <Card title="Complex Equations" icon="microchip">
+    **Matrices, nested fractions**
+    
+    Slightly slower due to KaTeX validation
+  </Card>
+</CardGroup>
+
+<Warning>
+The extension processes equations **sequentially** (one at a time) to ensure reliability with Notion's dynamic DOM. Parallel processing would be faster but risk missing equations or causing race conditions.
+
+See [Technical Details](/reference/technical-details) for the rationale behind sequential processing.
+</Warning>
+
+## Next Steps
+
+Now that you've successfully converted your first equations, explore these guides:
+
+<CardGroup cols={2}>
+  <Card title="Detailed Usage Guide" icon="book" href="/guides/usage">
+    Learn the full conversion workflow and best practices
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guides/keyboard-shortcuts">
+    Master both trigger methods and troubleshoot shortcut conflicts
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Fix common issues like timing problems and invalid LaTeX
+  </Card>
+  <Card title="Technical Details" icon="code" href="/reference/technical-details">
+    Understand how the extension works under the hood
+  </Card>
+</CardGroup>
+
+<Tip>
+**Pro tip**: For large pages with many equations, paste them into Notion first, then run the conversion once at the end. This is faster than converting after each paste.
+</Tip>

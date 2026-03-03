@@ -1,0 +1,172 @@
+---
+title: Keyboard Shortcuts
+description: Quick reference for Noeqtion keyboard shortcuts
+icon: keyboard
+---
+
+Noeqtion provides a convenient keyboard shortcut to trigger equation conversion without leaving your keyboard.
+
+## Primary Shortcut
+
+<Card title="Convert Math Equations" icon="wand-magic-sparkles">
+  <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '10px' }}>
+    Ctrl + Alt + M
+  </div>
+  
+  Triggers the conversion process for all LaTeX equations on the current page.
+</Card>
+
+## Implementation Details
+
+The keyboard shortcut is implemented using a keydown event listener in the content script:
+
+```javascript
+document.addEventListener("keydown", (event) => {
+  if (
+    event.ctrlKey &&
+    event.altKey &&
+    (event.key === "M" || event.key === "m")
+  ) {
+    event.preventDefault();
+    convertMathEquations();
+  }
+});
+```
+
+<Info>
+  The shortcut works with both uppercase and lowercase 'M', so you don't need to worry about Caps Lock.
+</Info>
+
+## Shortcut Behavior
+
+<Steps>
+  <Step title="Event Prevention">
+    When the shortcut is pressed, `event.preventDefault()` is called to prevent any default browser behavior from interfering with the conversion process.
+  </Step>
+
+  <Step title="Immediate Execution">
+    The `convertMathEquations()` function is called immediately, starting the conversion process without any delay.
+  </Step>
+
+  <Step title="Page-Wide Conversion">
+    The shortcut triggers conversion for ALL equations on the page, not just selected text or the current block.
+  </Step>
+</Steps>
+
+## Platform Support
+
+<CardGroup cols={2}>
+  <Card title="Windows & Linux" icon="windows">
+    `Ctrl + Alt + M`
+  </Card>
+  
+  <Card title="macOS" icon="apple">
+    `Ctrl + Alt + M`
+    
+    <Note>
+      On macOS, this uses Ctrl (not Cmd). The extension maintains the same shortcut across all platforms.
+    </Note>
+  </Card>
+</CardGroup>
+
+## Alternative Methods
+
+If you prefer not to use the keyboard shortcut, you can also trigger conversion through:
+
+### Extension Popup
+
+<Steps>
+  <Step title="Click Extension Icon">
+    Click the Noeqtion icon in your browser's extension toolbar.
+  </Step>
+
+  <Step title="Press Convert Button">
+    Click the "Convert" button in the popup window.
+  </Step>
+</Steps>
+
+The popup method uses the same underlying conversion logic:
+
+```javascript
+// popup.js
+document.getElementById('convert-button').addEventListener('click', () => {
+  api.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    api.tabs.sendMessage(tabs[0].id, { action: 'convert' });
+  });
+});
+```
+
+## Shortcut Conflicts
+
+<Warning>
+  If `Ctrl+Alt+M` is already bound to another extension or application, you may need to disable that binding first.
+</Warning>
+
+Common conflicts:
+- Some screen recording software
+- Window management tools
+- Other browser extensions
+- System-wide shortcuts on Linux
+
+## Future Customization
+
+Currently, the keyboard shortcut is hardcoded in the extension. To change it, you would need to:
+
+1. Edit the `content.js` file
+2. Modify the event listener conditions
+3. Reload the extension in your browser
+
+<Tip>
+  If you need a different shortcut, consider opening an issue on the project repository to request customizable keyboard shortcuts.
+</Tip>
+
+## Accessibility
+
+The keyboard shortcut provides several accessibility benefits:
+
+- **Keyboard-First Workflow**: Convert equations without using the mouse
+- **Visible Feedback**: The conversion process provides visual feedback as equations are processed
+- **Non-Blocking**: The shortcut doesn't interfere with screen readers or other assistive technologies
+
+## Troubleshooting Shortcuts
+
+<AccordionGroup>
+  <Accordion title="Shortcut Not Working">
+    **Possible causes:**
+    - You're not on a `notion.so` page
+    - The content script failed to load
+    - Another extension is capturing the shortcut first
+    
+    **Solutions:**
+    - Check the browser console for errors
+    - Disable other extensions temporarily
+    - Try using the popup method instead
+  </Accordion>
+  
+  <Accordion title="Shortcut Triggers But Nothing Happens">
+    **Possible causes:**
+    - No LaTeX equations detected on the page
+    - Equations are in an unsupported format
+    - The page structure doesn't match Notion's expected DOM
+    
+    **Solutions:**
+    - Verify your equations use `$...$` or `$$...$$` format
+    - Check that you're on a standard Notion page (not a database view)
+    - Look for console warnings about equation detection
+  </Accordion>
+  
+  <Accordion title="Partial Conversion">
+    If only some equations convert:
+    - Press the shortcut again to process remaining equations
+    - Check for KaTeX syntax errors in unconverted equations
+    - Verify that equations are in editable blocks
+  </Accordion>
+</AccordionGroup>
+
+## Quick Reference
+
+| Action | Shortcut | Notes |
+|--------|----------|-------|
+| Convert all equations | `Ctrl+Alt+M` | Works on focused Notion page |
+| Stop conversion | `Esc` (during) | Refresh the page to abort |
+| Undo conversion | `Ctrl+Z` | Use Notion's native undo |

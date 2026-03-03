@@ -1,0 +1,273 @@
+---
+title: 'Contributing to Noeqtion'
+description: 'Learn how to contribute to the Noeqtion browser extension project'
+---
+
+We welcome contributions to Noeqtion! This guide will help you get started with contributing to the project.
+
+## Getting Started
+
+<Steps>
+  <Step title="Fork and Clone the Repository">
+    Fork the repository on GitHub and clone it to your local machine:
+    
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/noeqtion.git
+    cd noeqtion
+    ```
+  </Step>
+
+  <Step title="Install the Extension Locally">
+    The extension doesn't require a build step - you can load it directly from the source files.
+    
+    ### For Firefox:
+    1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
+    2. Click "Load Temporary Add-on"
+    3. Select the `manifest.json` file from the repository
+    
+    ### For Chrome/Chromium:
+    1. Open Chrome and navigate to `chrome://extensions/`
+    2. Enable "Developer mode" (toggle in top right)
+    3. Click "Load unpacked"
+    4. Select the repository folder
+  </Step>
+
+  <Step title="Make Your Changes">
+    The extension consists of three main files:
+    
+    - `content.js` - Core conversion logic that runs on Notion pages
+    - `popup.js` - Extension popup interface handler
+    - `manifest.json` - Extension configuration and permissions
+    
+    Make your changes to the relevant files based on what you're working on.
+  </Step>
+
+  <Step title="Test Your Changes">
+    1. Open a Notion page in your browser
+    2. Paste some LaTeX equations (e.g., `$E=mc^2$` or `$$\int_0^\infty e^{-x^2}dx$$`)
+    3. Test the conversion using:
+       - Keyboard shortcut: `Ctrl+Alt+M`
+       - Extension popup: Click the extension icon and press "Convert"
+    4. Verify that both inline (`$...$`) and display (`$$...$$`) equations convert correctly
+  </Step>
+
+  <Step title="Submit a Pull Request">
+    1. Commit your changes with a clear, descriptive commit message
+    2. Push to your fork
+    3. Open a pull request against the main repository
+    4. Describe what your changes do and why they're needed
+  </Step>
+</Steps>
+
+## Project Structure
+
+The extension has a simple, focused structure:
+
+```
+noeqtion/
+├── manifest.json      # Extension metadata and configuration
+├── content.js         # Main conversion logic (runs on Notion pages)
+├── popup.html         # Extension popup UI
+├── popup.js           # Popup interaction handler
+├── popup.css          # Popup styling
+└── README.md          # Project documentation
+```
+
+## Understanding the Conversion Logic
+
+The core conversion happens in `content.js`. Here's how it works:
+
+<AccordionGroup>
+  <Accordion title="Equation Detection">
+    The extension uses a regex pattern to find LaTeX equations:
+    
+    ```javascript
+    const EQUATION_REGEX = /($\$[\s\S]*?$\$|\$[^\$\n]*?\$)/;
+    ```
+    
+    This matches both:
+    - Inline equations: `$...$`
+    - Display equations: `$$...$$`
+  </Accordion>
+
+  <Accordion title="Sequential Processing">
+    Equations are converted one at a time in a loop:
+    
+    1. Find all equations in the DOM
+    2. Convert the first equation
+    3. Wait for Notion to update the DOM
+    4. Rescan and repeat until no equations remain
+    
+    This approach handles Notion's dynamic content updates reliably.
+  </Accordion>
+
+  <Accordion title="Timing Configuration">
+    The extension uses carefully tuned delays to work with Notion's UI:
+    
+    - `FOCUS: 50ms` - Wait after focusing an editable block
+    - `QUICK: 20ms` - Short pause for UI updates
+    - `DIALOG: 100ms` - Wait for dialogs to appear
+    - `MATH_BLOCK: 100ms` - Wait for math block initialization
+    - `POST_CONVERT: 300ms` - Wait after conversion for DOM update
+    
+    If you're experiencing timing issues, these values may need adjustment.
+  </Accordion>
+
+  <Accordion title="Display vs Inline Equations">
+    The extension handles the two equation types differently:
+    
+    **Display equations (`$$...$$`):**
+    - Deletes the selected text
+    - Types `/math` to trigger Notion's math block command
+    - Presses Enter to create the block
+    - Inserts the LaTeX content into the math input
+    - Clicks "Done" or presses Escape to close
+    
+    **Inline equations (`$...$`):**
+    - Directly replaces the selected text with `$$content$$`
+    - Notion automatically renders this as inline math
+  </Accordion>
+</AccordionGroup>
+
+## Coding Guidelines
+
+<CardGroup cols={2}>
+  <Card title="Code Style" icon="code">
+    - Use clear, descriptive variable names
+    - Add comments for non-obvious logic
+    - Follow the existing code formatting
+    - Keep functions focused and single-purpose
+  </Card>
+  
+  <Card title="Testing" icon="flask">
+    - Test on both Firefox and Chrome
+    - Test with various LaTeX expressions
+    - Test with multiple equations on one page
+    - Verify error handling (invalid LaTeX)
+  </Card>
+  
+  <Card title="Performance" icon="gauge">
+    - Minimize DOM queries
+    - Use appropriate timing delays
+    - Avoid blocking the main thread
+    - Test with pages containing many equations
+  </Card>
+  
+  <Card title="Compatibility" icon="browsers">
+    - Use standard Web APIs
+    - Use browser polyfill: `const api = typeof browser !== 'undefined' ? browser : chrome;`
+    - Test Manifest V3 compatibility
+    - Ensure works with Notion's dynamic content
+  </Card>
+</CardGroup>
+
+## Common Contribution Areas
+
+### Bug Fixes
+
+If you've found a bug:
+
+1. Check if an issue already exists on GitHub
+2. If not, open a new issue with:
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - Browser and version
+   - Example LaTeX equations that fail
+3. Reference the issue number in your pull request
+
+### Feature Enhancements
+
+Potential areas for improvement:
+
+- Support for additional LaTeX environments
+- Better error handling for invalid LaTeX
+- Visual feedback during conversion
+- Support for other note-taking platforms
+- Customizable keyboard shortcuts
+- Batch conversion with progress indicator
+
+<Note>
+  Before starting work on a major feature, open an issue to discuss the approach and ensure it aligns with the project's goals.
+</Note>
+
+### Documentation
+
+Documentation improvements are always welcome:
+
+- Fix typos or unclear explanations
+- Add examples for common use cases
+- Improve code comments
+- Add troubleshooting guides
+- Create video tutorials or demos
+
+## Reporting Issues
+
+When reporting issues, please include:
+
+<Accordion title="Bug Report Template">
+  **Description:**
+  A clear description of what went wrong
+  
+  **Steps to Reproduce:**
+  1. Step one
+  2. Step two
+  3. ...
+  
+  **Expected Behavior:**
+  What you expected to happen
+  
+  **Actual Behavior:**
+  What actually happened
+  
+  **Environment:**
+  - Browser: (Chrome/Firefox/Other)
+  - Browser version:
+  - Extension version:
+  - Operating System:
+  
+  **Example LaTeX:**
+  The specific equation(s) that caused the issue
+  
+  **Console Errors:**
+  Any errors from the browser console (F12 > Console)
+</Accordion>
+
+## Development Tips
+
+<Tip>
+  **Debugging:** Open the browser console (F12) to see console logs from `content.js`. The extension logs useful information about the conversion process.
+</Tip>
+
+<Tip>
+  **Testing KaTeX Errors:** The extension detects KaTeX errors by looking for `div[role="alert"]` elements. Test with invalid LaTeX to ensure error handling works.
+</Tip>
+
+<Tip>
+  **Reloading Changes:** After making changes, reload the extension:
+  - Firefox: Go to `about:debugging` and click "Reload"
+  - Chrome: Go to `chrome://extensions` and click the reload icon
+</Tip>
+
+## Browser Compatibility
+
+The extension uses the browser API polyfill pattern:
+
+```javascript
+const api = typeof browser !== 'undefined' ? browser : chrome;
+```
+
+This allows the same code to work in both Firefox (which uses `browser.*`) and Chrome (which uses `chrome.*`).
+
+<Warning>
+  The extension uses Manifest V3, which is required for Chrome. Ensure any new features maintain V3 compatibility.
+</Warning>
+
+## Need Help?
+
+If you have questions:
+
+- Open a [GitHub issue](https://github.com/voidCounter/noeqtion/issues)
+- Check existing issues for similar questions
+- Review the code comments in `content.js` for implementation details
+
+Thank you for contributing to Noeqtion!

@@ -1,0 +1,193 @@
+---
+title: Usage Guide
+description: Learn how to convert LaTeX equations to Notion's native math blocks
+icon: play
+---
+
+Noeqtion automatically detects and converts LaTeX-style equations in your Notion pages to native math blocks. This guide covers everything you need to know to use the extension effectively.
+
+## Converting Equations
+
+There are two ways to trigger the conversion process:
+
+<CardGroup cols={2}>
+  <Card title="Keyboard Shortcut" icon="keyboard">
+    Press `Ctrl+Alt+M` anywhere on a Notion page
+  </Card>
+  <Card title="Extension Popup" icon="mouse-pointer">
+    Click the extension icon and press the "Convert" button
+  </Card>
+</CardGroup>
+
+## Equation Formats
+
+Noeqtion supports two types of LaTeX equations:
+
+### Inline Equations
+
+Inline equations are wrapped in single dollar signs and appear within text:
+
+```latex
+The quadratic formula is $x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$ for any quadratic equation.
+```
+
+<Info>
+  Inline equations are converted to Notion's inline math format using double dollar signs ($$...$$).
+</Info>
+
+### Display Equations
+
+Display equations are wrapped in double dollar signs and appear as block-level elements:
+
+```latex
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+```
+
+<Info>
+  Display equations are converted to Notion's `/math` block with the LaTeX content automatically populated.
+</Info>
+
+## How Conversion Works
+
+<Steps>
+  <Step title="Detection">
+    The extension scans the page for text nodes matching the equation regex pattern:
+    
+    ```javascript
+    /(\$\$[\s\S]*?\$\$|\$[^\$\n]*?\$)/
+    ```
+    
+    This pattern matches both inline (`$...$`) and display (`$$...$$`) equations.
+  </Step>
+
+  <Step title="Sequential Processing">
+    Equations are processed one at a time to ensure stability. After each conversion, the DOM is rescanned to find remaining equations.
+    
+    <Note>
+      Sequential processing prevents conflicts and ensures accurate conversion even on pages with many equations.
+    </Note>
+  </Step>
+
+  <Step title="Text Selection">
+    For each equation found, the extension:
+    - Locates the editable parent element with `data-content-editable-leaf="true"`
+    - Clicks to focus the block
+    - Selects the exact equation text using the DOM Range API
+  </Step>
+
+  <Step title="Conversion">
+    Based on the equation type:
+    
+    **For inline equations:**
+    - The selected text is replaced with `$$latexContent$$`
+    - Notion automatically renders this as an inline math element
+    
+    **For display equations:**
+    - The selected text is deleted
+    - The `/math` command is inserted
+    - Enter is pressed to create the math block
+    - The LaTeX content is inserted into the math block input
+    - The "Done" button is clicked (or Escape if there's an error)
+  </Step>
+
+  <Step title="DOM Rescan">
+    After a 300ms delay to allow Notion to update the DOM, the page is rescanned for remaining equations.
+  </Step>
+</Steps>
+
+## Visual Behavior
+
+During conversion, Noeqtion temporarily hides UI elements to reduce visual distraction:
+
+```javascript
+// Math dialog and text action menu are hidden during conversion
+div[role="dialog"] { opacity: 0 !important; transform: scale(0.001) !important; }
+.notion-text-action-menu { opacity: 0 !important; }
+```
+
+<Tip>
+  This creates a smoother experience when converting multiple equations at once.
+</Tip>
+
+## Timing Configuration
+
+The extension uses carefully tuned delays to work with Notion's UI:
+
+<AccordionGroup>
+  <Accordion title="Focus Delay (50ms)">
+    Wait time after focusing an editable block so Notion registers the focus.
+  </Accordion>
+  
+  <Accordion title="Quick Delay (20ms)">
+    Short pause for UI updates between small operations like select/delete/insertText.
+  </Accordion>
+  
+  <Accordion title="Dialog Delay (100ms)">
+    Wait for dialogs and inputs to appear (display equations only).
+  </Accordion>
+  
+  <Accordion title="Math Block Delay (100ms)">
+    Extra time for the math block to fully initialize (display equations only).
+  </Accordion>
+  
+  <Accordion title="Post-Convert Delay (300ms)">
+    Wait after conversion for Notion to update the DOM before rescanning.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Single Page at a Time" icon="file">
+    Work on one Notion page at a time for best results
+  </Card>
+  
+  <Card title="Wait for Completion" icon="clock">
+    Let the conversion process finish before editing the page
+  </Card>
+  
+  <Card title="Valid LaTeX" icon="check">
+    Ensure your LaTeX syntax is valid before conversion
+  </Card>
+  
+  <Card title="Save First" icon="floppy-disk">
+    Save your work before converting in case you need to undo
+  </Card>
+</CardGroup>
+
+## Example Workflow
+
+Here's a typical workflow for converting a page with multiple equations:
+
+1. Paste or type your content with LaTeX equations in Notion
+2. Press `Ctrl+Alt+M` to start the conversion
+3. Watch as equations are converted one by one
+4. Review the converted math blocks
+5. Edit any equations that need adjustment using Notion's native math editor
+
+<Warning>
+  The extension only works on `https://www.notion.so/*` pages as configured in the manifest.
+</Warning>
+
+## What Gets Converted
+
+The extension converts:
+- ✅ Inline equations: `$x^2 + y^2 = z^2$`
+- ✅ Display equations: `$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$`
+- ✅ Multi-line display equations with `\\` line breaks
+- ✅ Complex nested structures like fractions, matrices, and integrals
+
+The extension does NOT convert:
+- ❌ Equations already in Notion's math block format
+- ❌ Code blocks containing dollar signs
+- ❌ Dollar amounts (e.g., $100 or $50.00) - these don't match the regex pattern
+
+## Error Handling
+
+<Info>
+  If a KaTeX error is detected in the math dialog, the extension automatically closes the dialog with Escape and continues to the next equation.
+</Info>
+
+When conversion fails for an equation, the extension logs a warning and continues processing remaining equations. Check the browser console for detailed error messages.

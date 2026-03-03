@@ -1,0 +1,389 @@
+---
+title: Troubleshooting
+description: Common issues and solutions for Noeqtion
+icon: wrench
+---
+
+This guide helps you diagnose and resolve common issues when using Noeqtion to convert LaTeX equations in Notion.
+
+## Common Issues
+
+### Extension Not Working
+
+<AccordionGroup>
+  <Accordion title="Content Script Not Loading">
+    **Symptoms:**
+    - Keyboard shortcut doesn't respond
+    - Extension popup does nothing
+    - No console logs from the extension
+    
+    **Diagnosis:**
+    
+    Open the browser console (F12) and look for:
+    ```
+    Notion Math Converter content script loaded.
+    ```
+    
+    If you don't see this message, the content script isn't loading.
+    
+    **Solutions:**
+    
+    <Steps>
+      <Step title="Verify Page URL">
+        The extension only works on `https://www.notion.so/*` pages. Check that your URL matches this pattern:
+        
+        ```json
+        "host_permissions": ["https://www.notion.so/*"]
+        ```
+      </Step>
+      
+      <Step title="Reload Extension">
+        Go to your browser's extension management page and reload the Noeqtion extension.
+      </Step>
+      
+      <Step title="Refresh Page">
+        Refresh the Notion page after reloading the extension.
+      </Step>
+      
+      <Step title="Check Permissions">
+        Ensure the extension has the required permissions: `activeTab` and `scripting`.
+      </Step>
+    </Steps>
+  </Accordion>
+  
+  <Accordion title="Equations Not Detected">
+    **Symptoms:**
+    - Shortcut triggers but nothing happens
+    - Console shows "No equations found"
+    
+    **Diagnosis:**
+    
+    The extension uses this regex pattern to detect equations:
+    ```javascript
+    /(\$\$[\s\S]*?\$\$|\$[^\$\n]*?\$)/
+    ```
+    
+    This pattern matches:
+    - Inline: `$equation$` (no newlines allowed)
+    - Display: `$$equation$$` (newlines allowed)
+    
+    **Common mismatches:**
+    - ❌ Dollar amounts: `$100` (missing closing `$`)
+    - ❌ Inline with newlines: `$x\n y$` (newlines not allowed in inline)
+    - ❌ Triple dollars: `$$$equation$$$` (not a valid pattern)
+    - ❌ Already converted: Equations in Notion's math blocks
+    
+    **Solutions:**
+    - Verify your LaTeX uses exactly one or two dollar signs on each side
+    - Keep inline equations on a single line
+    - Check that equations aren't already converted
+  </Accordion>
+  
+  <Accordion title="Partial Conversions">
+    **Symptoms:**
+    - Some equations convert, others don't
+    - Conversion stops midway
+    
+    **Diagnosis:**
+    
+    Check the console for warnings:
+    ```javascript
+    console.warn("KaTeX error detected, closing dialog");
+    console.warn("Selection failed or doesn't match equation text");
+    console.warn("Could not find editable parent");
+    ```
+    
+    **Solutions:**
+    
+    <Steps>
+      <Step title="Verify LaTeX Syntax">
+        Invalid LaTeX causes KaTeX errors. The extension detects errors via:
+        ```javascript
+        const hasError = document.querySelector('div[role="alert"]') !== null;
+        ```
+        
+        If an error is detected, the dialog is closed and the equation is skipped.
+      </Step>
+      
+      <Step title="Check Editable Blocks">
+        Equations must be in editable blocks with the attribute:
+        ```javascript
+        parent.getAttribute("data-content-editable-leaf") === "true"
+        ```
+        
+        Equations in non-editable areas (headers, locked blocks) will be skipped.
+      </Step>
+      
+      <Step title="Run Again">
+        The extension processes equations sequentially and rescans after each conversion. If it stopped early, try pressing `Ctrl+Alt+M` again.
+      </Step>
+    </Steps>
+  </Accordion>
+</AccordionGroup>
+
+## Timing Issues
+
+Noeqtion uses carefully calibrated delays to work with Notion's UI. If conversions are inconsistent, timing might be the issue.
+
+<Warning>
+  On slow connections or heavy pages, the default timing values may be too short.
+</Warning>
+
+### Current Timing Configuration
+
+```javascript
+const TIMING = {
+  FOCUS: 50,          // Wait after focusing an editable block
+  QUICK: 20,          // Short pause for UI updates
+  DIALOG: 100,        // Wait for dialogs/inputs to appear
+  MATH_BLOCK: 100,    // Extra time for math block initialization
+  POST_CONVERT: 300,  // Wait for DOM update before rescanning
+};
+```
+
+### Symptoms of Timing Issues
+
+- Selection fails intermittently
+- Math dialog doesn't open
+- LaTeX content not inserted correctly
+- Conversion works on second attempt but not first
+
+### Solutions
+
+<Tip>
+  If you're comfortable editing the code, you can increase the timing values in `content.js` and reload the extension.
+</Tip>
+
+Recommended adjustments for slow systems:
+```javascript
+const TIMING = {
+  FOCUS: 100,         // Double the focus delay
+  QUICK: 50,          // Increase UI update delay
+  DIALOG: 200,        // Double the dialog delay
+  MATH_BLOCK: 200,    // Double the math block delay
+  POST_CONVERT: 500,  // Increase DOM rescan delay
+};
+```
+
+## Display Equation Issues
+
+<AccordionGroup>
+  <Accordion title="Done Button Not Found">
+    **Symptoms:**
+    - Display equations don't finalize
+    - Math dialog stays open
+    
+    **Code reference:**
+    ```javascript
+    function clickDoneButton() {
+      const doneButton = Array.from(
+        document.querySelectorAll('[role="button"]')
+      ).find((btn) => btn.textContent.includes("Done"));
+      
+      if (doneButton) {
+        doneButton.click();
+        return true;
+      }
+      return false;
+    }
+    ```
+    
+    **Cause:**
+    - Notion changed the button text or structure
+    - Button hasn't appeared yet (timing issue)
+    
+    **Fallback:**
+    The extension automatically falls back to pressing Escape:
+    ```javascript
+    if (!doneClicked) {
+      dispatchKeyEvent("Escape", { keyCode: 27 });
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Math Block Input Not Found">
+    **Symptoms:**
+    - Display equation creates empty math block
+    - LaTeX content not inserted
+    
+    **Code reference:**
+    ```javascript
+    if (isEditableElement(document.activeElement)) {
+      insertTextIntoActiveElement(document.activeElement, latexContent);
+    } else {
+      console.warn("Could not find math block input");
+    }
+    ```
+    
+    **Solutions:**
+    - Check console for the warning message
+    - Increase `TIMING.MATH_BLOCK` delay
+    - Verify that Notion's math dialog structure hasn't changed
+  </Accordion>
+</AccordionGroup>
+
+## Inline Equation Issues
+
+<Info>
+  Inline equations use a simpler conversion process - they directly replace selected text with `$$latexContent$$` and let Notion handle the rendering.
+</Info>
+
+### Inline Conversion Logic
+
+```javascript
+async function convertInlineEquation(latexContent) {
+  const selection = window.getSelection();
+  if (!selection.rangeCount || selection.isCollapsed) {
+    console.warn("No text selected for inline equation");
+    return;
+  }
+  
+  const fullEquationText = `$$${latexContent}$$`;
+  document.execCommand("insertText", false, fullEquationText);
+  
+  await delay(TIMING.POST_CONVERT);
+}
+```
+
+**Common issues:**
+- If selection fails, the equation is skipped
+- If the text doesn't match exactly, selection verification fails
+
+## DOM Structure Issues
+
+<Warning>
+  Noeqtion relies on Notion's DOM structure. If Notion updates their HTML, the extension may break.
+</Warning>
+
+### Critical DOM Dependencies
+
+1. **Editable blocks** must have:
+   ```javascript
+   data-content-editable-leaf="true"
+   ```
+
+2. **Math dialog** is detected by:
+   ```javascript
+   div[role="dialog"]
+   ```
+
+3. **Error alerts** are detected by:
+   ```javascript
+   div[role="alert"]
+   ```
+
+4. **Done button** must contain text "Done"
+
+<Tip>
+  If Notion updates their DOM structure, the extension may need updates. Check the repository for the latest version.
+</Tip>
+
+## Browser Compatibility
+
+The extension supports both Chrome and Firefox:
+
+```javascript
+const api = typeof browser !== "undefined" ? browser : chrome;
+```
+
+### Chrome/Edge
+- Uses `chrome` API
+- Manifest V3
+- Requires `activeTab` and `scripting` permissions
+
+### Firefox
+- Uses `browser` API
+- May require manifest adjustments for full compatibility
+
+## Debugging Tips
+
+<Steps>
+  <Step title="Enable Console Logging">
+    Open the browser console (F12) before converting. The extension logs:
+    - Script load confirmation
+    - Equation detection results
+    - Warnings for failed conversions
+    - Errors with stack traces
+  </Step>
+  
+  <Step title="Test Single Equations">
+    Try converting a single simple equation first:
+    ```latex
+    $x^2$
+    ```
+    
+    If this works, the issue is likely with complex LaTeX syntax.
+  </Step>
+  
+  <Step title="Check Selection">
+    The extension verifies selection:
+    ```javascript
+    if (selection.toString() !== equationText) {
+      console.warn("Selection failed or doesn't match equation text");
+      return;
+    }
+    ```
+    
+    If this warning appears, there's a mismatch between detected and selected text.
+  </Step>
+  
+  <Step title="Inspect Timing">
+    If you suspect timing issues, watch for the delays:
+    - FOCUS: 50ms after clicking blocks
+    - DIALOG: 100ms after inserting `/math`
+    - POST_CONVERT: 300ms between equations
+  </Step>
+</Steps>
+
+## Error Messages Reference
+
+| Console Message | Cause | Solution |
+|----------------|-------|----------|
+| `Could not find equation text in node` | Regex matched but exact text not found | Check for special characters or encoding issues |
+| `Could not find editable parent` | Equation not in editable block | Move equation to an editable text block |
+| `Selection failed or doesn't match` | Text selection didn't match equation | Check for whitespace or hidden characters |
+| `KaTeX error detected` | Invalid LaTeX syntax | Verify LaTeX is valid; check Notion's math editor |
+| `Could not find math block input` | Math dialog input element not found | Increase MATH_BLOCK timing delay |
+| `No text selected for inline equation` | Selection collapsed before conversion | Timing issue; try increasing QUICK delay |
+
+## Performance Considerations
+
+<Info>
+  The extension processes equations sequentially, which is slower but more reliable than parallel processing.
+</Info>
+
+### Why Sequential Processing?
+
+```javascript
+while (true) {
+  const equations = findEquations();
+  
+  if (equations.length === 0) {
+    break;
+  }
+  
+  const node = equations[0];  // Always process the first equation
+  // ... convert equation ...
+}
+```
+
+This approach:
+- Prevents race conditions
+- Allows DOM to update between conversions
+- Ensures accurate rescanning
+- Works reliably with Notion's async UI updates
+
+**Trade-off:** Converting 100 equations takes ~30-50 seconds due to the 300ms delay between each.
+
+## Getting Help
+
+If you're still experiencing issues:
+
+1. Check the browser console for error messages
+2. Verify you're using the latest version of the extension
+3. Test on a fresh Notion page with a simple equation
+4. Report the issue with:
+   - Browser version
+   - Notion page structure
+   - Example LaTeX that fails
+   - Console logs/errors

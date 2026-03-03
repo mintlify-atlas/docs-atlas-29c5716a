@@ -1,0 +1,224 @@
+---
+title: "Installation"
+description: "Install Noeqtion in Firefox or Chrome"
+---
+
+Noeqtion is available for Firefox (via the official Add-ons store) and Chrome (via manual installation). Choose your browser below.
+
+<Note>
+**Firefox users**: Installation takes 30 seconds via the Add-ons store.
+
+**Chrome users**: Manual installation required (Chrome Web Store submission pending).
+</Note>
+
+## Firefox Installation
+
+Firefox is the easiest installation path — one click from the official Mozilla Add-ons store.
+
+<Steps>
+  <Step title="Visit the Add-ons Store">
+    Navigate to the [Noeqtion extension page](https://addons.mozilla.org/en-US/firefox/addon/notion-math-converter) on Mozilla Add-ons
+  </Step>
+  
+  <Step title="Add to Firefox">
+    Click the **"Add to Firefox"** button
+    
+    Firefox will prompt you to confirm the installation and review permissions
+  </Step>
+  
+  <Step title="Approve Permissions">
+    The extension requests these permissions:
+    
+    - **Access your data for www.notion.so**: Required to detect and convert equations on Notion pages
+    - **Access browser tabs**: Required to inject the content script when you open Notion
+    
+    Click **"Add"** to approve
+  </Step>
+  
+  <Step title="Verify Installation">
+    You should see the Noeqtion icon appear in your Firefox toolbar
+    
+    Navigate to any Notion page to test the extension
+  </Step>
+</Steps>
+
+<Tip>
+The Firefox version receives automatic updates when new versions are released.
+</Tip>
+
+## Chrome Installation
+
+Chrome requires manual installation via Developer Mode since the extension is not yet published on the Chrome Web Store.
+
+<Steps>
+  <Step title="Download the Extension">
+    Download the latest release from the [GitHub repository](https://github.com/voidCounter/noeqtion)
+    
+    ```bash
+    # Clone the repository
+    git clone https://github.com/voidCounter/noeqtion.git
+    
+    # Or download the ZIP and extract it
+    ```
+  </Step>
+  
+  <Step title="Open Chrome Extensions">
+    Navigate to `chrome://extensions/` in Chrome
+    
+    Or go to **Menu → Extensions → Manage Extensions**
+  </Step>
+  
+  <Step title="Enable Developer Mode">
+    Toggle the **"Developer mode"** switch in the top-right corner of the extensions page
+  </Step>
+  
+  <Step title="Load the Extension">
+    Click **"Load unpacked"** button that appears after enabling Developer Mode
+    
+    Select the folder containing the Noeqtion extension files (the folder with `manifest.json`)
+  </Step>
+  
+  <Step title="Verify Installation">
+    The extension should now appear in your extensions list with the name "Notion Math Converter"
+    
+    You should see the extension icon in your Chrome toolbar
+  </Step>
+</Steps>
+
+<Warning>
+**Chrome Developer Mode Notice**: Chrome may show a warning banner about "Developer mode extensions". This is normal for unpacked extensions. You can safely dismiss this warning.
+
+The extension does not update automatically when installed via Developer Mode. To update, download the new version and reload the extension.
+</Warning>
+
+## Permissions Explained
+
+When you install Noeqtion, it requests these permissions:
+
+<AccordionGroup>
+  <Accordion title="activeTab - Access active tab" icon="window-maximize">
+    **Why needed**: Allows the extension to inject the content script into the current Notion tab when you trigger the conversion.
+    
+    **What it does**: Only accesses the tab when you explicitly use the keyboard shortcut or click the popup button.
+    
+    **Privacy**: Does not track or monitor your browsing history.
+  </Accordion>
+  
+  <Accordion title="scripting - Inject scripts" icon="code">
+    **Why needed**: Required to run the content script (`content.js`) that performs equation detection and conversion.
+    
+    **What it does**: Injects the conversion logic into Notion pages.
+    
+    **Privacy**: Only runs on `https://www.notion.so/*` pages (explicitly scoped via `host_permissions`).
+  </Accordion>
+  
+  <Accordion title="host_permissions - Access www.notion.so" icon="globe">
+    **Why needed**: Restricts the extension to only run on Notion domains.
+    
+    **What it does**: Enables content script injection specifically on `https://www.notion.so/*` URLs.
+    
+    **Privacy**: The extension cannot access or interact with any other websites.
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+These permissions are defined in `manifest.json:6-7` and are the minimal set required for the extension to function.
+</Info>
+
+## Verifying Installation
+
+After installation, verify the extension is working correctly:
+
+<Steps>
+  <Step title="Open Notion">
+    Navigate to any Notion page at `https://www.notion.so`
+  </Step>
+  
+  <Step title="Check the Console (Optional)">
+    Open browser DevTools (F12) and check the Console tab
+    
+    You should see: `Notion Math Converter content script loaded.`
+    
+    This confirms the content script injected successfully
+  </Step>
+  
+  <Step title="Test the Extension">
+    Type a test equation in a Notion block:
+    
+    ```
+    The formula is $E=mc^2$ and the integral $$\int_0^\infty e^{-x^2}dx$$
+    ```
+    
+    Press `Ctrl+Alt+M`
+    
+    Both equations should convert to Notion's native math blocks
+  </Step>
+</Steps>
+
+<Check>
+If the equations converted successfully, installation is complete! Proceed to the [Quickstart](/quickstart) to learn the full workflow.
+</Check>
+
+## Troubleshooting Installation
+
+<AccordionGroup>
+  <Accordion title="Extension icon not appearing" icon="eye-slash">
+    **Firefox**: Check `about:addons` to verify the extension is enabled
+    
+    **Chrome**: Check `chrome://extensions/` to verify the extension is enabled and loaded correctly
+    
+    Try restarting your browser after installation
+  </Accordion>
+  
+  <Accordion title="Console message not appearing" icon="terminal">
+    Ensure you're on a `https://www.notion.so/*` page (the extension only runs on Notion)
+    
+    The content script does not run on:
+    - `notion.so` landing pages (only runs inside the app at `www.notion.so`)
+    - Local Notion desktop app
+    - Mobile browsers
+  </Accordion>
+  
+  <Accordion title="Chrome: 'Manifest version 2 is deprecated' warning" icon="triangle-exclamation">
+    This extension uses **Manifest V3** (the latest version), so you should not see this warning
+    
+    If you do see it, ensure you've downloaded the latest version from GitHub
+  </Accordion>
+  
+  <Accordion title="Permissions request looks suspicious" icon="shield">
+    The permissions requested are legitimate and minimal
+    
+    You can inspect the source code on [GitHub](https://github.com/voidCounter/noeqtion) to verify the extension only does what it claims
+    
+    The extension:
+    - Does not collect any data
+    - Does not make network requests
+    - Only runs on Notion pages
+    - Is open source and auditable
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+If you encounter installation issues not covered here, please [open an issue on GitHub](https://github.com/voidCounter/noeqtion/issues) with:
+- Your browser and version
+- Operating system
+- Exact error message (if any)
+- Screenshots of the problem
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Tutorial" icon="rocket" href="/quickstart">
+    Learn how to use Noeqtion with a hands-on tutorial
+  </Card>
+  <Card title="Usage Guide" icon="book" href="/guides/usage">
+    Understand the conversion workflow in detail
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guides/keyboard-shortcuts">
+    Learn all available shortcuts and controls
+  </Card>
+  <Card title="Browser Compatibility" icon="browser" href="/reference/browser-compatibility">
+    See full browser support details
+  </Card>
+</CardGroup>
